@@ -11,6 +11,8 @@ namespace Pdi.Antifraude.UnitTests;
 public sealed class AnalysisServiceTests
 {
   private readonly FakeAnalysisRepository _repository = new();
+  private const string Analyst = "analista";
+
   private readonly AnalysisService _service;
 
   public AnalysisServiceTests()
@@ -90,7 +92,7 @@ public sealed class AnalysisServiceTests
   {
     var analysis = AddPendingAnalysis();
 
-    var result = await _service.ApproveAsync(analysis.Id);
+    var result = await _service.ApproveAsync(analysis.Id, Analyst);
 
     Assert.Equal(AnalysisOperationStatus.Success, result.Status);
     var stored = _repository.Items[analysis.Id];
@@ -101,6 +103,8 @@ public sealed class AnalysisServiceTests
     Assert.Equal(analysis.CorrelationId.ToString(), pending.Key);
     var approved = JsonSerializer.Deserialize<ProposalApprovedEvent>(pending.Payload, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
     Assert.Equal(pending.Id, approved.EventId);
+    Assert.Equal(Analyst, stored.DecidedBy);
+    Assert.Equal(Analyst, approved.ApprovedBy);
     Assert.Equal(analysis.ProposalId, approved.ProposalId);
     Assert.Equal(analysis.Id, approved.AnalysisId);
     Assert.Equal(analysis.CorrelationId, approved.CorrelationId);
@@ -109,7 +113,7 @@ public sealed class AnalysisServiceTests
   [Fact]
   public async Task ApproveAsync_WhenMissing_ShouldReturnNotFound()
   {
-    var result = await _service.ApproveAsync(Guid.NewGuid());
+    var result = await _service.ApproveAsync(Guid.NewGuid(), Analyst);
 
     Assert.Equal(AnalysisOperationStatus.NotFound, result.Status);
   }
@@ -120,7 +124,7 @@ public sealed class AnalysisServiceTests
     var analysis = AddPendingAnalysis();
     analysis.Status = AnalysisStatus.Rejected;
 
-    var result = await _service.ApproveAsync(analysis.Id);
+    var result = await _service.ApproveAsync(analysis.Id, Analyst);
 
     Assert.Equal(AnalysisOperationStatus.InvalidStatus, result.Status);
     Assert.Empty(analysis.PendingEvents);
@@ -132,7 +136,7 @@ public sealed class AnalysisServiceTests
     var analysis = AddPendingAnalysis();
     _repository.SimulateConflict = true;
 
-    var result = await _service.ApproveAsync(analysis.Id);
+    var result = await _service.ApproveAsync(analysis.Id, Analyst);
 
     // O ReplaceOne condicional não casou: nada gravado, logo nenhum evento no banco.
     Assert.Equal(AnalysisOperationStatus.InvalidStatus, result.Status);
@@ -143,7 +147,7 @@ public sealed class AnalysisServiceTests
   {
     var analysis = AddPendingAnalysis();
 
-    var result = await _service.RejectAsync(analysis.Id, new RejectAnalysisRequest { Reason = " Documentos ilegiveis " });
+    var result = await _service.RejectAsync(analysis.Id, new RejectAnalysisRequest { Reason = " Documentos ilegiveis " }, Analyst);
 
     Assert.Equal(AnalysisOperationStatus.Success, result.Status);
     var stored = _repository.Items[analysis.Id];
@@ -156,6 +160,7 @@ public sealed class AnalysisServiceTests
     var rejected = JsonSerializer.Deserialize<ProposalRejectedEvent>(pending.Payload, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
     Assert.Equal(analysis.ProposalId, rejected.ProposalId);
     Assert.Equal("Documentos ilegiveis", rejected.Reason);
+    Assert.Equal(Analyst, rejected.RejectedBy);
   }
 
   [Fact]
@@ -163,7 +168,7 @@ public sealed class AnalysisServiceTests
   {
     var analysis = AddPendingAnalysis();
 
-    var result = await _service.RejectAsync(analysis.Id, new RejectAnalysisRequest { Reason = "x" });
+    var result = await _service.RejectAsync(analysis.Id, new RejectAnalysisRequest { Reason = "x" }, Analyst);
 
     Assert.Equal(AnalysisOperationStatus.ValidationFailed, result.Status);
     Assert.Equal(AnalysisStatus.Pending, analysis.Status);
@@ -175,7 +180,7 @@ public sealed class AnalysisServiceTests
     var analysis = AddPendingAnalysis();
     analysis.Status = AnalysisStatus.Approved;
 
-    var result = await _service.RejectAsync(analysis.Id, new RejectAnalysisRequest { Reason = "Documentos ilegiveis" });
+    var result = await _service.RejectAsync(analysis.Id, new RejectAnalysisRequest { Reason = "Documentos ilegiveis" }, Analyst);
 
     Assert.Equal(AnalysisOperationStatus.InvalidStatus, result.Status);
     Assert.Null(analysis.RejectionReason);

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- dotnet test --settings coverlet.runsettings --collect:"XPlat Code Coverage" -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <!-- Só código de produção da solution -->
+          <Include>[Pdi.Onboarding.Api]*,[Pdi.Antifraude.Api]*,[Pdi.Onboarding.Worker]*,[Pdi.Onboarding.Contracts]*</Include>
+          <!-- Migrations são geradas pelo `dotnet ef`, não escritas à mão -->
+          <ExcludeByFile>**/Migrations/*.cs</ExcludeByFile>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

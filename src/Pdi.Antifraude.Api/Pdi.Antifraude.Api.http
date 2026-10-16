@@ -2,7 +2,22 @@
 @proposalId = 11111111-1111-1111-1111-111111111111
 @internalKey = dev-internal-key-troque-em-producao
 
-### Criar análise (simula o Consumer Proposta Finalizada) → 201
+### 1. Login (a tela faz isso) → copia o accessToken para as rotas protegidas
+# @name login
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{ "username": "analista", "password": "analista123" }
+
+@token = {{login.response.body.$.accessToken}}
+
+### Senha errada → 401
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{ "username": "analista", "password": "errada" }
+
+### 2. Criar análise (simula o Consumer Proposta Finalizada; usa a chave interna, não JWT) → 201
 # @name create
 POST {{host}}/api/v1/analyses
 Content-Type: application/json
@@ -45,26 +60,32 @@ X-Internal-Api-Key: {{internalKey}}
   "taxId": "52998224725"
 }
 
-### Listar pendentes
+### 3. Listar pendentes (sem token → 401)
 GET {{host}}/api/v1/analyses?status=Pending
+Authorization: Bearer {{token}}
 
 ### Detalhe
 GET {{host}}/api/v1/analyses/{{analysisId}}
+Authorization: Bearer {{token}}
 
-### Aprovar → 200 e publica proposta-conta-aprovada
+### 4. Aprovar → 200 (decidedBy = "analista") e publica proposta-conta-aprovada
 POST {{host}}/api/v1/analyses/{{analysisId}}/approve
+Authorization: Bearer {{token}}
 
 ### Aprovar de novo → 409
 POST {{host}}/api/v1/analyses/{{analysisId}}/approve
+Authorization: Bearer {{token}}
 
 ### Rejeitar com motivo curto → 400
 POST {{host}}/api/v1/analyses/{{analysisId}}/reject
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "reason": "x" }
 
 ### Rejeitar (use o id de outra análise pendente) → 200, publica proposta-conta-rejeitada
 POST {{host}}/api/v1/analyses/{{analysisId}}/reject
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "reason": "Documentos ilegiveis" }

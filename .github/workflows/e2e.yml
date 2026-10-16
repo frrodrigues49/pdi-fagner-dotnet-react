@@ -1,0 +1,83 @@
+name: E2E e imagens
+
+# Sobe a stack INTEIRA em containers (Kafka, Mongo, Oracle, 2 APIs, Worker e tela) e
+# roda o fluxo do organograma de ponta a ponta. Na main, publica as imagens no GHCR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  e2e:
+    name: Fluxo ponta a ponta
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sobe a stack completa
+        run: docker compose --profile app up -d --build
+
+      - name: Roda o E2E (proposta → análise → aprovação → contas no Oracle, replay, rejeição, DLQ)
+        run: ./scripts/e2e.sh
+
+      - name: Logs (só se falhar)
+        if: failure()
+        run: docker compose --profile app logs --tail=200
+
+  publish:
+    name: Publica imagem ${{ matrix.image }}
+    needs: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image: onboarding-api
+            context: .
+            file: src/Pdi.Onboarding.Api/Dockerfile
+          - image: antifraude-api
+            context: .
+            file: src/Pdi.Antifraude.Api/Dockerfile
+          - image: worker
+            context: .
+            file: src/Pdi.Onboarding.Worker/Dockerfile
+          - image: web
+            context: web/antifraude-ui
+            file: web/antifraude-ui/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nome da imagem (o GHCR exige minúsculas)
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/${{ matrix.image }}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

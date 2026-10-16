@@ -1,0 +1,41 @@
+{
+  "name": "PDI Onboarding (.NET 8 + React)",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
+  },
+
+  // Oracle + Kafka + Mongo + 3 serviços .NET + nginx: a máquina de 2 núcleos não aguenta.
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  },
+
+  "forwardPorts": [8080, 5003, 5004],
+  "portsAttributes": {
+    "8080": { "label": "Tela de aprovação", "onAutoForward": "openBrowser" },
+    "5003": { "label": "API Onboarding (/swagger)", "onAutoForward": "silent" },
+    "5004": { "label": "API Antifraude (/swagger)", "onAutoForward": "silent" },
+    "9092": { "label": "Kafka", "onAutoForward": "ignore" },
+    "27017": { "label": "Mongo", "onAutoForward": "ignore" },
+    "1521": { "label": "Oracle", "onAutoForward": "ignore" }
+  },
+
+  "postCreateCommand": "dotnet restore Pdi.Onboarding.sln && dotnet tool restore && npm --prefix web/antifraude-ui ci",
+  "postStartCommand": "bash .devcontainer/start-stack.sh",
+
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["README.md"]
+    },
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "humao.rest-client",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  }
+}

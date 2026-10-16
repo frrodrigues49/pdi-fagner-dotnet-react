@@ -1,0 +1,90 @@
+name: Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
+      - "coverlet.runsettings"
+      - ".config/**"
+      - "docker-compose.yml"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
+      - "coverlet.runsettings"
+      - ".config/**"
+      - "docker-compose.yml"
+      - ".github/workflows/backend.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build, testes e cobertura
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DOTNET_NOLOGO: "true"
+      PDI_REQUIRE_INFRA: "1" # no CI, infra fora do ar é ERRO (localmente os testes de integração seriam pulados)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Sobe Kafka, Mongo e Oracle (os testes de integração usam a infra real)
+        run: |
+          docker compose up -d --wait --wait-timeout 300 kafka mongo oracle
+          docker compose up kafka-init
+
+      - name: Restore
+        run: dotnet restore Pdi.Onboarding.sln
+
+      - name: Build
+        run: dotnet build Pdi.Onboarding.sln --no-restore -c Release
+
+      - name: Testes (unitários + integração) com cobertura
+        run: >
+          dotnet test Pdi.Onboarding.sln --no-build -c Release
+          --settings coverlet.runsettings
+          --collect:"XPlat Code Coverage"
+          --results-directory TestResults
+          --logger "trx;LogFilePrefix=results"
+
+      - name: Relatório de cobertura
+        if: always()
+        run: |
+          dotnet tool restore
+          dotnet tool run reportgenerator \
+            -reports:"TestResults/**/coverage.cobertura.xml" \
+            -targetdir:coverage-report \
+            -reporttypes:"TextSummary;HtmlInline;MarkdownSummaryGithub"
+          cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Gate de cobertura (mínimo 77% de linhas)
+        run: |
+          rate=$(grep -oP 'Line coverage: \K[0-9.]+' coverage-report/Summary.txt)
+          echo "Cobertura de linhas: ${rate}%"
+          python3 -c "import sys; sys.exit(0 if float('${rate}') >= 77 else 1)" \
+            || { echo "::error::Cobertura de ${rate}% abaixo do mínimo de 77%"; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            coverage-report
+            TestResults/**/*.trx
+
+      - name: Logs da infra (só se falhar)
+        if: failure()
+        run: docker compose logs --tail=150

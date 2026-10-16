@@ -7,8 +7,6 @@ namespace Pdi.Antifraude.Api.Application.Analyses;
 
 public sealed class AnalysisService : IAnalysisService
 {
-  private const string DefaultDecidedBy = "backoffice";
-
   private readonly CreateAnalysisValidator _createValidator;
   private readonly RejectAnalysisValidator _rejectValidator;
   private readonly IAnalysisRepository _repository;
@@ -89,7 +87,10 @@ public sealed class AnalysisService : IAnalysisService
         : AnalysisResult.Ok(AnalysisResponse.From(analysis));
   }
 
-  public async Task<AnalysisResult> ApproveAsync(Guid id, CancellationToken cancellationToken = default)
+  public async Task<AnalysisResult> ApproveAsync(
+      Guid id,
+      string decidedBy,
+      CancellationToken cancellationToken = default)
   {
     var analysis = await _repository.GetByIdAsync(id, cancellationToken);
     if (analysis is null)
@@ -100,7 +101,7 @@ public sealed class AnalysisService : IAnalysisService
 
     var now = DateTime.UtcNow;
     analysis.Status = AnalysisStatus.Approved;
-    analysis.DecidedBy = DefaultDecidedBy;
+    analysis.DecidedBy = decidedBy;
     analysis.DecidedAt = now;
     analysis.UpdatedAt = now;
     analysis.PendingEvents.Add(Outbox.Message(Topics.ProposalApproved, new ProposalApprovedEvent
@@ -111,7 +112,7 @@ public sealed class AnalysisService : IAnalysisService
       AnalysisId = analysis.Id,
       Version = ProposalApprovedEvent.ContractVersion,
       OccurredAt = now,
-      ApprovedBy = DefaultDecidedBy
+      ApprovedBy = decidedBy
     }));
 
     // Decisão + evento na mesma escrita (outbox): se gravou, o evento VAI sair.
@@ -129,6 +130,7 @@ public sealed class AnalysisService : IAnalysisService
   public async Task<AnalysisResult> RejectAsync(
       Guid id,
       RejectAnalysisRequest request,
+      string decidedBy,
       CancellationToken cancellationToken = default)
   {
     var errors = _rejectValidator.Validate(request);
@@ -146,7 +148,7 @@ public sealed class AnalysisService : IAnalysisService
     analysis.Status = AnalysisStatus.Rejected;
     var reason = request.Reason.Trim();
     analysis.RejectionReason = reason;
-    analysis.DecidedBy = DefaultDecidedBy;
+    analysis.DecidedBy = decidedBy;
     analysis.DecidedAt = now;
     analysis.UpdatedAt = now;
     analysis.PendingEvents.Add(Outbox.Message(Topics.ProposalRejected, new ProposalRejectedEvent
@@ -157,7 +159,7 @@ public sealed class AnalysisService : IAnalysisService
       AnalysisId = analysis.Id,
       Version = ProposalRejectedEvent.ContractVersion,
       OccurredAt = now,
-      RejectedBy = DefaultDecidedBy,
+      RejectedBy = decidedBy,
       Reason = reason
     }));
 

@@ -11,13 +11,14 @@ public static class MongoConventions
 
   public static void Register()
   {
-    // O BsonSerializer é global (estático): registrar duas vezes lança exceção.
+    // O BsonSerializer é global (estático) para o PROCESSO inteiro: se outro componente
+    // (ex.: as duas APIs no mesmo teste de integração) já registrou, Try* não lança.
     if (_registered)
       return;
     _registered = true;
 
-    BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-    BsonSerializer.RegisterSerializer(new DateOnlySerializer());
+    BsonSerializer.TryRegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+    BsonSerializer.TryRegisterSerializer(new DateOnlySerializer());
 
     ConventionRegistry.Register(
         "pdi",

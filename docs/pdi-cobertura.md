@@ -7,8 +7,8 @@ Documento de acompanhamento do PDI. O projeto é construído do zero, caixa por 
 | Referência | Organograma `pdi.jpeg` |
 | Repositório | `pdi-fagner` |
 | Última atualização | 15/10/2026 |
-| Completude estimada | ~86% (6 de 7 fases) |
-| Fase atual | Fase 6 |
+| Completude estimada | 100% (7 de 7 fases) |
+| Fase atual | Concluído |
 
 Como atualizar: marque `[x]` o que fechou, ajuste a data e recalcule o percentual.
 
@@ -59,7 +59,7 @@ Mensageria: **Kafka**. Tópicos: `proposta-conta-finalizada`, `proposta-conta-ap
 | 3 | Worker + Consumer Proposta Finalizada | 100% |
 | 4 | Consumers Proposta Aprovada + Rejeitada | 100% |
 | 5 | Consumer CriarConta → Oracle | 100% |
-| 6 | Tela de aprovação + entrega | 0% |
+| 6 | Tela de aprovação + entrega | 100% |
 
 ---
 
@@ -129,13 +129,18 @@ Validado em 16/10: histórico de `criar-conta` reprocessado (5 propostas × 4 co
 
 ## Fase 6 — Tela de aprovação + entrega
 
-- [ ] `web/antifraude-ui` (React/Vite): pendentes, detalhe, aprovar e rejeitar (com motivo)
-- [ ] CORS na API Antifraude
-- [ ] Login (JWT) na tela e na API Antifraude; `DecidedBy` vindo do token (hoje fixo `"backoffice"`)
-- [ ] Compose com as 2 APIs e o worker
-- [ ] Cobertura ≥ 77% (coverlet + reportgenerator)
-- [ ] README
-- [ ] Demo ponta a ponta com replay nos 3 tópicos
+- [x] `web/antifraude-ui` (React 18 + TypeScript + Vite): login, lista com filtro e atualização a cada 5s, detalhe, aprovar, rejeitar (com motivo)
+- [x] Acompanhamento da proposta em tempo real (linha do tempo até "contas solicitadas")
+- [x] "Simular cliente": cria e finaliza propostas sem Postman (gera CPF válido)
+- [x] JWT na API Antifraude (`POST /api/v1/auth/login`); `DecidedBy` vem do token
+- [x] Sem CORS: nginx (produção) e Vite (dev) fazem proxy de `/onboarding` e `/antifraude` na mesma origem
+- [x] Dockerfiles das 2 APIs e do Worker; compose com profile `app` (stack inteira) e listener interno do Kafka
+- [x] Testes de integração (`Pdi.IntegrationTests`, 19) contra Kafka/Mongo/Oracle reais
+- [x] Gate de cobertura ≥ 77% no CI (coverlet + reportgenerator)
+- [x] `scripts/e2e.sh`: 17 verificações ponta a ponta passando pelo nginx
+- [x] GitHub Actions: Backend, Frontend, E2E + publicação das imagens no GHCR
+- [x] Codespaces (`.devcontainer/`): stack inteira em 1 clique
+- [x] README
 
 ---
 
@@ -193,9 +198,9 @@ Marcador: **9 feitos · 1 parcial · 0 abertos**.
 | MongoDB | precadastro e antifraude | Ambos prontos |
 | Oracle + EF Core | Contas | `ACCOUNTS` com 2 unique indexes, migration EF |
 | Kafka | 4 tópicos + 4 DLQs (`kafka-init`) | Outbox nas 2 APIs, 4 consumers |
-| React/Vite | Tela de aprovação | — |
-| xUnit + fakes manuais | Testes | 97 testes verdes (70 Onboarding/Worker + 27 Antifraude) |
-| Docker Compose | Demo local | Kafka (+ `kafka-init`), Mongo e Oracle |
+| React/Vite | Tela de aprovação | Pronta, 20 testes Vitest |
+| xUnit, WebApplicationFactory, Vitest | Testes | 103 unitários .NET + 19 de integração + 20 do front + E2E (17 verificações) |
+| Docker Compose | Demo local e CI | Infra + profile `app` com a stack inteira |
 
 ---
 
@@ -217,7 +222,6 @@ Ainda abertos (conscientes):
 
 | Débito | Quando |
 |---|---|
-| Login de usuário (JWT) e `DecidedBy` real | Fase 6, junto com a tela |
 | Várias réplicas da API publicariam o mesmo evento do outbox | Aceito: at-least-once + consumers idempotentes. Solução: lease/lock no dispatcher |
-| Segredos no `appsettings.json` | Fase 6 (variáveis de ambiente no compose) |
+| Segredos de demo no `appsettings.json` | Aceito para o PDI: o compose já aceita `INTERNAL_API_KEY`/`AUTH_SIGNING_KEY` por env; em produção, cofre de segredos |
 | Sem ferramenta para reprocessar a DLQ | Hoje é manual (`kafka-console-consumer`/`producer`) |

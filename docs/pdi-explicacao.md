@@ -54,7 +54,7 @@ O que cada caixa é no código:
 | Consumer Proposta Finalizada | `src/Pdi.Onboarding.Worker` | ✅ |
 | Consumer Proposta Aprovada (+ Rejeitada) | `src/Pdi.Onboarding.Worker` | ✅ |
 | Consumer CriarConta + Oracle | `src/Pdi.Onboarding.Worker` + schema `PDI` | ✅ |
-| Tela de aprovação | `web/antifraude-ui` (React/Vite) | 🚧 Fase 6 |
+| Tela de aprovação | `web/antifraude-ui` (React/Vite, porta 8080) | ✅ |
 
 Além do organograma, o sistema trata a **rejeição** (tópico `proposta-conta-rejeitada`) e as mensagens que nunca vão passar (tópicos `*.dlq`).
 
@@ -238,7 +238,7 @@ POST /api/v1/analyses   (uso interno; exige X-Internal-Api-Key, senão 401)
 
 > **"Por que índice único e não 'consultar antes de inserir'?"** Porque *consultar e depois inserir* tem janela de corrida: duas réplicas do consumer podem consultar ao mesmo tempo, ninguém acha nada e as duas inserem. O índice único é atômico no banco.
 
-### Passo 6 — Tela de aprovação consulta ✅ (a API) / 🚧 (a tela, Fase 6)
+### Passo 6 — Tela de aprovação consulta ✅
 
 ```
 GET /api/v1/analyses?status=Pending     lista ordenada por data de criação
@@ -353,6 +353,7 @@ Qualquer transição fora dessas setas é recusada com **409**.
 
 | Método | Rota | Sucesso | Erros |
 |---|---|---|---|
+| POST | `/api/v1/auth/login` | 200 + JWT | 401 |
 | POST | `/api/v1/analyses` 🔒 interno | 201 / **204 replay** | 400, **401** |
 | GET | `/api/v1/analyses?status=Pending` | 200 | — |
 | GET | `/api/v1/analyses/{id}` | 200 | 404 |
@@ -360,7 +361,7 @@ Qualquer transição fora dessas setas é recusada com **409**.
 | POST | `/api/v1/analyses/{id}/reject` | 200 + evento no outbox | 400, 404, 409 |
 | GET | `/health` | 200 | — |
 
-🔒 = exige o header `X-Internal-Api-Key`. As duas APIs têm Swagger em `/swagger` (ambiente Development) e serializam enums como texto (`"Pending"`).
+🔒 = exige o header `X-Internal-Api-Key`. As demais rotas de `/analyses` exigem **JWT** (`Authorization: Bearer ...`) e respondem 401 sem ele. As duas APIs têm Swagger em `/swagger` (ambiente Development) e serializam enums como texto (`"Pending"`).
 
 ---
 
@@ -477,13 +478,13 @@ dotnet test Pdi.Onboarding.sln
 | Retry longo expulsava o consumer do grupo | Partições pausadas + `Consume()` contínuo | 5 tentativas com a Antifraude fora, recuperação sem rebalance |
 | Tópico inexistente derrubava o Worker | `ConsumeException` não fatal → espera 5s | Consumer num tópico inexistente: host vivo |
 | Rota interna aberta | `X-Internal-Api-Key` | Sem chave ou com chave errada: 401 |
+| Qualquer um aprovava; `DecidedBy` fixo | JWT na Antifraude; `DecidedBy` = `sub` do token | Sem token: 401; aprovação registra `analista`/`supervisor` |
 | Tópicos criados "por acaso" | `kafka-init` | 4 tópicos + 4 DLQs |
 
 ### Ainda abertos (conscientes)
 
 | Débito | Risco | Plano |
 |---|---|---|
-| Sem login de usuário | Qualquer um aprova; `DecidedBy` é fixo `"backoffice"` | JWT na Fase 6, com a tela |
 | N réplicas da API publicariam o mesmo evento do outbox | Duplicata | Aceito (consumers idempotentes); a solução seria um lease no dispatcher |
 | Segredos no `appsettings.json` | Vazamento | Variáveis de ambiente no compose (Fase 6) |
 | Reprocessar a DLQ é manual | Operação | Uma ferramenta ou endpoint de replay |
@@ -491,6 +492,8 @@ dotnet test Pdi.Onboarding.sln
 ---
 
 ## 10. Roteiro de demo (ponta a ponta)
+
+> **Atalho:** `docker compose --profile app up -d --build` sobe tudo, inclusive a tela em http://localhost:8080 (`analista` / `analista123`). E `./scripts/e2e.sh` roda este roteiro inteiro sozinho (17 verificações). Na nuvem, o botão **Open in Codespaces** do README faz o mesmo.
 
 ```bash
 # 1. Infra (o kafka-init cria os tópicos e sai)
@@ -568,7 +571,59 @@ JWT e segredos em cofre, observabilidade (OpenTelemetry com o `CorrelationId` co
 
 ---
 
-## 12. Glossário
+## 12. Tela, segurança e entrega (Fase 6)
+
+### A tela (`web/antifraude-ui`)
+
+React 18 + TypeScript + Vite, servida por **nginx** no container `web` (porta 8080).
+
+| Página | O que faz |
+|---|---|
+| **Login** | `POST /antifraude/api/v1/auth/login`; guarda a sessão no `sessionStorage` |
+| **Análises** | Lista com filtro (pendentes, aprovadas, rejeitadas, todas), atualizada a cada 5s: a análise "aparece sozinha" quando o Worker a cria |
+| **Detalhe** | Dados do cliente (o snapshot), aprovar, rejeitar com motivo (3 a 500 caracteres, mesma regra da API) e a **linha do tempo da proposta**, que consulta a API Onboarding a cada 2s até "contas solicitadas" ou "rejeitada" |
+| **Simular cliente** | Faz o papel do Postman do organograma: gera um cliente com CPF válido, cria o rascunho e finaliza |
+
+**Sem CORS, de propósito.** A tela só chama a própria origem (`/onboarding/*` e `/antifraude/*`). O nginx, no container, e o Vite, em dev, repassam para as APIs. Mesma origem significa que não há CORS para configurar nem para errar.
+
+> Bug real encontrado pelo E2E: o `proxy_pass` do nginx fala **HTTP/1.0** por padrão, e o Kestrel recusa (400) um `POST` HTTP/1.0 sem corpo, como o `/finalize` e o `/approve`. A correção foi `proxy_http_version 1.1`.
+
+### Segurança
+
+| Quem chama | Como se autentica | Por quê |
+|---|---|---|
+| Analista (tela) → API Antifraude | **JWT** HS256 (`POST /api/v1/auth/login`), `[Authorize]` nas rotas | É uma pessoa: o token diz *quem* decidiu (`sub` → `DecidedBy`) |
+| Worker → `POST /api/v1/analyses` | **API key** interna (`X-Internal-Api-Key`) | É um serviço, não uma pessoa: segredo compartilhado, comparado em tempo constante |
+| Cliente → API Onboarding | aberta | É o "Postman" do organograma |
+
+Os usuários de demo (`analista`, `supervisor`) ficam na configuração. Em produção, o login viria de um provedor de identidade (Entra ID, Keycloak...), e a API só **validaria** o token.
+
+### Containers e compose
+
+- Um **Dockerfile multi-stage** por serviço .NET: o SDK compila e só o runtime vai para a imagem, rodando com o usuário `app`, sem root.
+- `docker compose up -d` sobe só a infra (para `dotnet run`). `docker compose --profile app up -d` sobe **tudo**.
+- **Kafka com dois listeners**: `localhost:9092` para quem está na máquina e `kafka:29092` para quem está na rede do compose. O broker devolve ao cliente o endereço *anunciado*; com só `localhost`, um container tentaria falar com ele mesmo.
+- `depends_on` com `service_healthy` (Mongo, Oracle, Kafka) e `service_completed_successfully` (`kafka-init`), para que ninguém suba antes da dependência estar pronta.
+
+### Testes em 4 níveis
+
+| Nível | Ferramenta | O que prova |
+|---|---|---|
+| Unitário (.NET, 103) | xUnit + fakes manuais | Regras de negócio, idempotência, políticas de retry/DLQ, JWT |
+| Integração (.NET, 19) | `WebApplicationFactory` + Kafka/Mongo/Oracle reais | Program/DI/controllers de verdade, índices do Mongo, outbox, consumer Kafka (ordem, retry, DLQ, commit, tópico inexistente), unique do Oracle |
+| Front (20) | Vitest + Testing Library | Cliente HTTP (JWT, 401, erros), formulário de rejeição, CPF |
+| Ponta a ponta (17 verificações) | `scripts/e2e.sh` | O organograma inteiro em containers, passando pelo nginx |
+
+### Pipeline (GitHub Actions)
+
+- **Backend**: sobe a infra no runner, roda unitários + integração e aplica o **gate de cobertura ≥ 77%**. O relatório aparece no resumo do job.
+- **Frontend**: typecheck, testes e build.
+- **E2E e imagens**: stack inteira + `e2e.sh`. Na `main`, publica as 4 imagens em `ghcr.io/<dono>/pdi-fagner-dotnet-react/*`.
+- **Codespaces**: o `.devcontainer/` baixa essas imagens (ou builda) e sobe tudo; a porta 8080 abre a tela.
+
+---
+
+## 13. Glossário
 
 | Termo | Significado |
 |---|---|
