@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F7984BD4-E062-4D31-A329-2CD2117BF228}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pdi.Onboarding.Api", "src\Pdi.Onboarding.Api\Pdi.Onboarding.Api.csproj", "{DBE1046B-DD30-4EC5-BAB3-81CAF5DF7C1D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B36E4706-27BE-4FAF-80F1-D6EF25D8B15C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pdi.Onboarding.UnitTests", "tests\Pdi.Onboarding.UnitTests\Pdi.Onboarding.UnitTests.csproj", "{4EB4A0B4-9FD1-4921-9960-14ED11C2631F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pdi.Onboarding.Worker", "src\Pdi.Onboarding.Worker\Pdi.Onboarding.Worker.csproj", "{531AC1B3-F189-4F5B-B075-CDF8841EA31F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pdi.Onboarding.Contracts", "src\Pdi.Onboarding.Contracts\Pdi.Onboarding.Contracts.csproj", "{875758AF-FD99-4B44-8126-B0FC58D90906}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pdi.Antifraude.Api", "src\Pdi.Antifraude.Api\Pdi.Antifraude.Api.csproj", "{B269D6B7-710C-4EE4-94F9-5BEA2FC0FDF1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pdi.Antifraude.UnitTests", "tests\Pdi.Antifraude.UnitTests\Pdi.Antifraude.UnitTests.csproj", "{FB782A26-996D-4C04-B6E0-A2842D5A32F5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DBE1046B-DD30-4EC5-BAB3-81CAF5DF7C1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBE1046B-DD30-4EC5-BAB3-81CAF5DF7C1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBE1046B-DD30-4EC5-BAB3-81CAF5DF7C1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBE1046B-DD30-4EC5-BAB3-81CAF5DF7C1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4EB4A0B4-9FD1-4921-9960-14ED11C2631F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EB4A0B4-9FD1-4921-9960-14ED11C2631F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EB4A0B4-9FD1-4921-9960-14ED11C2631F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EB4A0B4-9FD1-4921-9960-14ED11C2631F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{531AC1B3-F189-4F5B-B075-CDF8841EA31F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{531AC1B3-F189-4F5B-B075-CDF8841EA31F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{531AC1B3-F189-4F5B-B075-CDF8841EA31F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{531AC1B3-F189-4F5B-B075-CDF8841EA31F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{875758AF-FD99-4B44-8126-B0FC58D90906}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{875758AF-FD99-4B44-8126-B0FC58D90906}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{875758AF-FD99-4B44-8126-B0FC58D90906}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{875758AF-FD99-4B44-8126-B0FC58D90906}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B269D6B7-710C-4EE4-94F9-5BEA2FC0FDF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B269D6B7-710C-4EE4-94F9-5BEA2FC0FDF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B269D6B7-710C-4EE4-94F9-5BEA2FC0FDF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B269D6B7-710C-4EE4-94F9-5BEA2FC0FDF1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB782A26-996D-4C04-B6E0-A2842D5A32F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB782A26-996D-4C04-B6E0-A2842D5A32F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB782A26-996D-4C04-B6E0-A2842D5A32F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB782A26-996D-4C04-B6E0-A2842D5A32F5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DBE1046B-DD30-4EC5-BAB3-81CAF5DF7C1D} = {F7984BD4-E062-4D31-A329-2CD2117BF228}
+		{4EB4A0B4-9FD1-4921-9960-14ED11C2631F} = {B36E4706-27BE-4FAF-80F1-D6EF25D8B15C}
+		{531AC1B3-F189-4F5B-B075-CDF8841EA31F} = {F7984BD4-E062-4D31-A329-2CD2117BF228}
+		{875758AF-FD99-4B44-8126-B0FC58D90906} = {F7984BD4-E062-4D31-A329-2CD2117BF228}
+		{B269D6B7-710C-4EE4-94F9-5BEA2FC0FDF1} = {F7984BD4-E062-4D31-A329-2CD2117BF228}
+		{FB782A26-996D-4C04-B6E0-A2842D5A32F5} = {B36E4706-27BE-4FAF-80F1-D6EF25D8B15C}
+	EndGlobalSection
+EndGlobal

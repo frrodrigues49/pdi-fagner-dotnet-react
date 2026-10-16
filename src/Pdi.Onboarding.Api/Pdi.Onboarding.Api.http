@@ -1,0 +1,32 @@
+@host = http://localhost:5003
+@proposalId = cole-o-id-retornado-no-create
+
+### Criar rascunho
+POST {{host}}/api/v1/proposals
+Content-Type: application/json
+
+{
+  "fullName": "Ana Souza",
+  "taxId": "52998224725",
+  "email": "ana@email.com"
+}
+
+### Completar os dados
+PATCH {{host}}/api/v1/proposals/{{proposalId}}
+Content-Type: application/json
+
+{
+  "phone": "11999998888",
+  "birthDate": "1990-05-15",
+  "street": "Rua A, 100",
+  "city": "Sao Paulo",
+  "state": "SP",
+  "postalCode": "01310100",
+  "motherName": "Maria Souza"
+}
+
+### Consultar
+GET {{host}}/api/v1/proposals/{{proposalId}}
+
+### Finalizar (publica proposta-conta-finalizada)
+POST {{host}}/api/v1/proposals/{{proposalId}}/finalize
