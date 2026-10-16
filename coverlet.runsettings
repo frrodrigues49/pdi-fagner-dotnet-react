@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- dotnet test --settings coverlet.runsettings --collect:"XPlat Code Coverage" -->
+<!-- Uso: dotnet test com settings coverlet.runsettings e collect "XPlat Code Coverage" (ver README) -->
 <RunSettings>
   <DataCollectionRunSettings>
     <DataCollectors>
